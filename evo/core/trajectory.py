@@ -41,10 +41,12 @@ class PosePath3D(object):
     just a path, no temporal information
     also: base class for real trajectory
     """
+
     def __init__(
             self, positions_xyz: typing.Optional[np.ndarray] = None,
             orientations_quat_wxyz: typing.Optional[np.ndarray] = None,
             poses_se3: typing.Optional[typing.Sequence[np.ndarray]] = None,
+            covariances: typing.Optional[typing.Sequence[np.ndarray]] = None,
             meta: typing.Optional[dict] = None):
         """
         :param positions_xyz: nx3 list of x,y,z positions
@@ -62,6 +64,8 @@ class PosePath3D(object):
             self._orientations_quat_wxyz = np.array(orientations_quat_wxyz)
         if poses_se3 is not None:
             self._poses_se3 = poses_se3
+        if covariances is not None:
+            self._covariances = np.array(covariances)
         if self.num_poses == 0:
             raise TrajectoryException("pose data is empty")
         self.meta = {} if meta is None else meta
@@ -145,6 +149,12 @@ class PosePath3D(object):
         :return: path length in meters
         """
         return float(geometry.arc_len(self.positions_xyz))
+
+    @property
+    def covariances(self) -> np.ndarray:
+        if not hasattr(self, "_covariances"):
+            raise ValueError("covariances not available")
+        return self._covariances
 
     def transform(self, t: np.ndarray, right_mul: bool = False,
                   propagate: bool = False) -> None:
@@ -299,17 +309,19 @@ class PoseTrajectory3D(PosePath3D, object):
     """
     a PosePath with temporal information
     """
+
     def __init__(
             self, positions_xyz: typing.Optional[np.ndarray] = None,
             orientations_quat_wxyz: typing.Optional[np.ndarray] = None,
             timestamps: typing.Optional[np.ndarray] = None,
             poses_se3: typing.Optional[typing.Sequence[np.ndarray]] = None,
+            covariances: typing.Optional[typing.Sequence[np.ndarray]] = None,
             meta: typing.Optional[dict] = None):
         """
         :param timestamps: optional nx1 list of timestamps
         """
         super(PoseTrajectory3D,
-              self).__init__(positions_xyz, orientations_quat_wxyz, poses_se3,
+              self).__init__(positions_xyz, orientations_quat_wxyz, poses_se3, covariances,
                              meta)
         # this is a bit ugly...
         if timestamps is None:
